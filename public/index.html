@@ -3,287 +3,1302 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Room Human Counter - AI Vision Dashboard</title>
-  <meta name="description" content="Real-time smart room occupancy and human detection system using WebRTC mobile camera stream and TensorFlow.js COCO-SSD">
-  <link rel="stylesheet" href="/css/dashboard.css">
+  <title>MESSPULSE AI — Real-Time Campus Dining Intelligence & Queue Management</title>
+  <meta name="description" content="Production-grade AI computer-vision platform for real-time mess crowd intelligence, queue analytics, student dining recommendations, and occupancy optimization.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/dashboard.css">
 </head>
-<body>
+<body class="theme-bright">
 
-  <!-- App Header -->
-  <header class="app-header">
-    <div class="brand-wrapper">
-      <div class="brand-icon">👁</div>
-      <div>
-        <h1 class="brand-title">
-          SMART ROOM HUMAN COUNTER
-          <span class="brand-badge">Live Vision AI</span>
-        </h1>
+  <!-- TOP COMMAND BAR -->
+  <header class="command-bar">
+    <div class="brand-container">
+      <div class="brand-logo-gem">
+        <span class="logo-pulse-ring"></span>
+        <span class="logo-pulse-core"></span>
+      </div>
+      <div class="brand-titles">
+        <div class="brand-main">
+          MESSPULSE <span class="brand-ai">AI</span>
+        </div>
+        <div class="brand-subtitle">REAL-TIME CAMPUS DINING INTELLIGENCE</div>
       </div>
     </div>
 
-    <div class="header-status-bar">
-      <div class="header-metric">
-        <span class="header-metric-label">Session Uptime</span>
-        <span class="header-metric-val" id="sessionUptime">00:00</span>
+    <!-- Dining Location Selector -->
+    <div class="dining-selector-wrapper">
+      <span class="selector-label">LOCATION:</span>
+      <select id="locationSelect" class="dining-select">
+        <option value="central-hall" selected>Central Campus Dining Hall</option>
+        <option value="north-mess">North Block Dining Complex</option>
+        <option value="south-canteen">South Hostel Canteen & Express</option>
+      </select>
+    </div>
+
+    <!-- Telemetry Status Pills -->
+    <div class="command-telemetry">
+      <!-- Live Monitoring Pulse -->
+      <div class="telemetry-pill" id="monitorStatusPill">
+        <span class="pulse-dot live" id="monitorDot"></span>
+        <span id="monitorStatusText">LIVE MONITORING</span>
       </div>
 
-      <div class="header-metric">
-        <span class="header-metric-label">Inference Engine</span>
-        <span class="header-metric-val" id="engineStatus" style="color: #fbbf24;">Loading Model...</span>
+      <!-- Camera Feed Status -->
+      <div class="telemetry-pill" id="cameraFeedPill">
+        <span class="pulse-dot waiting" id="cameraDot"></span>
+        <span id="cameraFeedText">CAMERA: STANDBY</span>
       </div>
 
-      <div class="header-actions">
-        <button class="btn btn-secondary" id="btnStartStop" title="Pause or Resume Monitoring">
-          ⏸ Stop Monitoring
-        </button>
-        <button class="btn btn-secondary" id="btnReconnect" title="Reset WebRTC and reconnect">
-          🔄 Reconnect
-        </button>
+      <!-- Freshness Indicator -->
+      <div class="telemetry-pill">
+        <span class="telemetry-label">SYNC:</span>
+        <span class="telemetry-val" id="freshnessDisplay">&lt; 1s ago</span>
       </div>
+
+      <!-- Demo Mode Switch -->
+      <div class="demo-switch-wrap" title="Toggle Demo Mode with realistic simulation">
+        <label class="demo-switch-label" for="demoModeToggle">
+          <input type="checkbox" id="demoModeToggle" />
+          <span class="demo-switch-slider"></span>
+        </label>
+        <span class="demo-label-text" id="demoLabelText">DEMO MODE</span>
+      </div>
+
+      <!-- Student Portal Direct Link -->
+      <a href="./student.html" target="_blank" class="btn-student-view" title="Open student mobile view in a new tab">
+        <span>📱 Student View</span>
+        <span class="external-arrow">↗</span>
+      </a>
+
+      <!-- Quick Sound Chime Toggle -->
+      <button class="icon-btn" id="btnQuickSound" title="Toggle Audible Crowd Chimes">
+        <span id="soundIcon">🔔</span>
+      </button>
     </div>
   </header>
 
-  <!-- Main Dashboard Container -->
-  <main class="dashboard-container">
+  <!-- DEMO MODE ACTIVE BANNER (Hidden by default) -->
+  <div class="demo-banner" id="demoModeBanner" style="display: none;">
+    <div class="demo-banner-content">
+      <span class="demo-badge">DEMONSTRATION DATA</span>
+      <span>Simulated campus lunch rush scenario active. Synthetic crowd observations are generated for testing. Switch toggle above to return to Live Camera.</span>
+    </div>
+    <button class="demo-exit-btn" id="btnExitDemo">Switch to Live Camera</button>
+  </div>
+
+  <!-- APPLICATION SHELL -->
+  <div class="app-shell">
     
-    <!-- LEFT COLUMN: Network & Connection -->
-    <aside class="left-column">
-      
-      <!-- Connection & QR Card -->
-      <section class="card" aria-labelledby="conn-title">
-        <div class="card-header">
-          <h2 class="card-title" id="conn-title">
-            <span>📱</span> Mobile Camera Connection
-          </h2>
-        </div>
+    <!-- GLOBAL NAVIGATION SIDEBAR -->
+    <nav class="app-sidebar" id="appSidebar">
+      <div class="sidebar-menu">
+        <button class="nav-item active" data-view="overview" id="navOverview">
+          <span class="nav-icon">📊</span>
+          <span class="nav-text">Overview</span>
+        </button>
 
-        <div class="qr-wrapper">
-          <div class="qr-box">
-            <img id="qrImage" alt="Scan QR Code to open mobile camera" src="" />
+        <button class="nav-item" data-view="live-studio" id="navLiveStudio">
+          <span class="nav-icon">📹</span>
+          <span class="nav-text">Live AI Studio</span>
+          <span class="nav-badge" id="cameraStreamBadge">STANDBY</span>
+        </button>
+
+        <button class="nav-item" data-view="student-view" id="navStudentView">
+          <span class="nav-icon">📱</span>
+          <span class="nav-text">Student Crowd View</span>
+        </button>
+
+        <button class="nav-item" data-view="queue-intel" id="navQueueIntel">
+          <span class="nav-icon">🚶‍♂️</span>
+          <span class="nav-text">Queue Intelligence</span>
+        </button>
+
+        <button class="nav-item" data-view="zones" id="navZones">
+          <span class="nav-icon">🗺️</span>
+          <span class="nav-text">Zone Monitoring</span>
+        </button>
+
+        <button class="nav-item" data-view="analytics" id="navAnalytics">
+          <span class="nav-icon">📈</span>
+          <span class="nav-text">Crowd Analytics</span>
+        </button>
+
+        <button class="nav-item" data-view="alerts" id="navAlerts">
+          <span class="nav-icon">⚡</span>
+          <span class="nav-text">Alerts & Events</span>
+          <span class="nav-counter" id="unreadAlertCount">1</span>
+        </button>
+
+        <button class="nav-item" data-view="settings" id="navSettings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">Settings</span>
+        </button>
+      </div>
+
+      <!-- System Health Diagnostics Widget -->
+      <div class="sidebar-footer">
+        <div class="health-card">
+          <div class="health-header">
+            <span>SYSTEM HEALTH</span>
+            <span class="health-tag tag-healthy" id="healthTag">OPTIMAL</span>
           </div>
-          <p class="qr-caption">Scan with your mobile camera to begin streaming</p>
+          <div class="health-row">
+            <span class="health-lbl">Vision Model</span>
+            <span class="health-val" id="modelHealthVal">COCO-SSD Ready</span>
+          </div>
+          <div class="health-row">
+            <span class="health-lbl">Signaling WS</span>
+            <span class="health-val" id="wsHealthVal">Connected</span>
+          </div>
+          <div class="health-row">
+            <span class="health-lbl">Inference Latency</span>
+            <span class="health-val" id="latencyHealthVal">-- ms</span>
+          </div>
+          <div class="health-row">
+            <span class="health-lbl">Engine Version</span>
+            <span class="health-val">v2.5.0-PROD</span>
+          </div>
         </div>
+      </div>
+    </nav>
 
-        <!-- Direct LAN URL -->
-        <div class="url-box">
-          <span class="url-text" id="mobileUrlDisplay">Loading network URL...</span>
-          <button class="url-copy-btn" id="btnCopyUrl" title="Copy URL">Copy</button>
-        </div>
+    <!-- MAIN VIEWPORT CONTAINER -->
+    <main class="main-viewport" id="mainViewport">
 
-        <!-- Connection Status Pill -->
-        <div class="status-pill status-waiting" id="mobileStatusPill">
-          <span class="status-dot pulse"></span>
-          <span>Waiting for mobile camera...</span>
-        </div>
-
-        <!-- Network Interface Selector -->
-        <div style="margin-top: 0.85rem;">
-          <label for="ipSelect" style="font-size: 0.72rem; color: var(--text-dim); display: block; margin-bottom: 0.25rem;">
-            Network Interface:
-          </label>
-          <select id="ipSelect" class="select-input" style="width: 100%;"></select>
-        </div>
-      </section>
-
-      <!-- Network Setup & Firewall Card -->
-      <section class="card" aria-labelledby="net-title">
-        <div class="card-header">
-          <h2 class="card-title" id="net-title">
-            <span>🌐</span> Network Setup
-          </h2>
-        </div>
-
-        <table class="network-info-table">
-          <tbody>
-            <tr>
-              <td>Server Status</td>
-              <td><span style="color: #34d399;">● Running</span></td>
-            </tr>
-            <tr>
-              <td>Host</td>
-              <td id="infoHost">0.0.0.0</td>
-            </tr>
-            <tr>
-              <td>Port</td>
-              <td id="infoPort">5173</td>
-            </tr>
-            <tr>
-              <td>LAN IP</td>
-              <td id="infoLanIp">Detecting...</td>
-            </tr>
-            <tr>
-              <td>Protocol</td>
-              <td id="infoProtocol">HTTP</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="firewall-notice">
-          ⚠️ Make sure the mobile and computer are connected to the same Wi-Fi network and that application port 5173 is allowed through the computer firewall.
-        </div>
-
-        <div class="privacy-banner">
-          <span>🔒</span>
-          <span>Camera video is processed locally and is not recorded or stored.</span>
-        </div>
-      </section>
-
-    </aside>
-
-    <!-- CENTER COLUMN: Camera Viewfinder & Vision Feed -->
-    <section class="center-column">
-      <div class="card viewfinder-card" aria-label="Live Camera Vision Feed">
+      <!-- ======================================================== -->
+      <!-- VIEW 1: OVERVIEW DASHBOARD -->
+      <!-- ======================================================== -->
+      <section class="view-panel active" id="viewOverview">
         
-        <div class="viewfinder-wrapper" id="viewfinderWrapper">
-          <!-- WebRTC Remote Video Stream -->
-          <video id="remoteVideo" autoplay playsinline muted></video>
+        <!-- ROW 1: HERO OCCUPANCY & WAIT TIME & RECOMMENDATION -->
+        <div class="overview-hero-grid">
           
-          <!-- Bounding Boxes Canvas Overlay -->
-          <canvas id="detectionCanvas"></canvas>
-
-          <!-- Empty State (when no video is streaming) -->
-          <div class="viewfinder-empty-state" id="emptyState">
-            <div class="radar-circle">
-              <span class="radar-icon">📡</span>
+          <!-- Hero Card: Real-time Occupancy Gauge -->
+          <div class="card hero-occupancy-card">
+            <div class="card-eyebrow">
+              <span class="live-dot-mini"></span> LIVE MESS OCCUPANCY
             </div>
-            <h3 style="font-size: 1.15rem; color: #f8fafc; font-weight: 700;">Waiting for mobile camera...</h3>
-            <p style="font-size: 0.85rem; max-width: 380px; text-align: center; color: #94a3b8;">
-              Scan the QR code on the left with your phone or open the LAN URL in your mobile browser.
-            </p>
-            <div style="margin-top: 0.5rem;">
-              <button class="btn btn-secondary btn-sm" id="btnTestWebcam">
-                🧪 Test with Laptop Webcam
-              </button>
+
+            <div class="gauge-and-count">
+              <!-- SVG Segmented Circular Gauge -->
+              <div class="gauge-container">
+                <svg class="circular-gauge" viewBox="0 0 200 200">
+                  <circle class="gauge-bg" cx="100" cy="100" r="82" />
+                  <circle class="gauge-fill" id="gaugeFillCircle" cx="100" cy="100" r="82" />
+                </svg>
+                <div class="gauge-center-text">
+                  <div class="gauge-pct" id="heroPct">0%</div>
+                  <div class="gauge-sub">CAPACITY</div>
+                </div>
+              </div>
+
+              <!-- Main Counts Block -->
+              <div class="count-block">
+                <div class="count-large-row">
+                  <span class="count-main-num" id="heroOccupancyNum">0</span>
+                  <span class="count-divider">/</span>
+                  <span class="count-cap-num" id="heroCapacityNum">220</span>
+                </div>
+                <div class="count-seats-left" id="heroSeatsLeft">220 Seats Available</div>
+                
+                <div class="tier-pill-wrap">
+                  <span class="crowd-tier-pill tier-low" id="heroTierPill">CROWD LEVEL: LOW</span>
+                </div>
+
+                <div class="raw-smoothing-note" id="heroSmoothingNote">
+                  Raw Detections: 0 | Filter: 7f Median
+                </div>
+              </div>
+            </div>
+
+            <div class="card-footer-meta">
+              <span>Freshness: <strong id="heroFreshness">Synchronized</strong></span>
+              <span>Vision Source: <strong id="heroSourceDisplay">No Camera Signal</strong></span>
             </div>
           </div>
 
-          <!-- Video HUD Status -->
-          <div class="viewfinder-hud">
-            <div class="hud-badge rec">
-              <span style="width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
-              <span id="hudSource">No Signal</span>
+          <!-- Hero Card: Estimated Waiting Time -->
+          <div class="card hero-wait-card">
+            <div class="card-eyebrow">
+              <span>⏱️</span> SERVICE QUEUE & WAIT TIME
             </div>
-            <div class="toolbar-group">
-              <div class="hud-badge" id="hudResolution">--</div>
-              <div class="hud-badge" id="hudFps">-- FPS</div>
+
+            <div class="wait-display-row">
+              <div class="wait-number-wrap">
+                <span class="wait-large-num" id="waitLargeNum">~1-2</span>
+                <span class="wait-unit">MINS</span>
+              </div>
+              <div class="wait-status-pill pill-green" id="waitStatusPill">
+                FLUID SERVICE
+              </div>
+            </div>
+
+            <div class="wait-factors-list">
+              <div class="factor-row">
+                <span class="factor-label">Detected in Line:</span>
+                <strong class="factor-val" id="waitQueueCount">0 students</strong>
+              </div>
+              <div class="factor-row">
+                <span class="factor-label">Active Serving Lines:</span>
+                <strong class="factor-val" id="waitActiveCounters">3 counters</strong>
+              </div>
+              <div class="factor-row">
+                <span class="factor-label">Estimated Service Rate:</span>
+                <strong class="factor-val" id="waitServiceRate">45s / meal</strong>
+              </div>
+            </div>
+
+            <div class="calculation-transparent-box">
+              <span class="calc-icon">ℹ️</span>
+              <span id="waitCalcExplain">Estimated wait = (Queue Count × 45s service rate) ÷ 3 counters. Continuously computed from live camera detections.</span>
+            </div>
+          </div>
+
+          <!-- Hero Card: Visit Recommendation -->
+          <div class="card hero-recommendation-card" id="heroRecCard">
+            <div class="card-eyebrow">
+              <span>💡</span> BEST TIME TO VISIT
+            </div>
+
+            <div class="rec-headline" id="recHeadline">
+              Conditions look comfortable. Consider going now.
+            </div>
+
+            <p class="rec-body" id="recBody">
+              Mess seating is currently widely available and serving queues are moving without delay. This is an optimal window for swift dining.
+            </p>
+
+            <div class="rec-meta-box">
+              <div class="rec-meta-item">
+                <span class="rec-meta-lbl">Suggested Timing</span>
+                <strong class="rec-meta-val" id="recSuggestedTime">Immediate (Next 15m)</strong>
+              </div>
+              <div class="rec-meta-item">
+                <span class="rec-meta-lbl">Expected Surge</span>
+                <strong class="rec-meta-val" id="recExpectedSurge">1:00 PM Peak</strong>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ROW 2: KEY PERFORMANCE INDICATORS -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-lbl">Current Occupancy</div>
+            <div class="kpi-val" id="kpiOccupancy">0</div>
+            <div class="kpi-sub" id="kpiOccupancyPct">0% of max capacity</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-lbl">Queue Length</div>
+            <div class="kpi-val" id="kpiQueue">0</div>
+            <div class="kpi-sub" id="kpiQueueSub">Food counter zone</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-lbl">Session Peak Occupancy</div>
+            <div class="kpi-val" id="kpiPeak">0</div>
+            <div class="kpi-sub" id="kpiPeakTime">Recorded during session</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-lbl">Session Average</div>
+            <div class="kpi-val" id="kpiAverage">0.0</div>
+            <div class="kpi-sub">Continuous smoothed mean</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-lbl">Detection FPS</div>
+            <div class="kpi-val" id="kpiFps">--</div>
+            <div class="kpi-sub" id="kpiFpsSub">Hardware accelerated</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-lbl">Model Confidence</div>
+            <div class="kpi-val" id="kpiConfidence">--</div>
+            <div class="kpi-sub">Average person score</div>
+          </div>
+        </div>
+
+        <!-- ROW 3: LIVE OCCUPANCY TREND CHART -->
+        <div class="card trend-section-card">
+          <div class="trend-card-header">
+            <div>
+              <h2 class="card-title">Real-Time Occupancy Observations</h2>
+              <p class="card-subtitle">Timestamped computer-vision detections plotted against mess capacity threshold</p>
+            </div>
+
+            <div class="chart-controls">
+              <button class="chart-range-btn active" data-range="30s">Last 30s</button>
+              <button class="chart-range-btn" data-range="5m">Last 5m</button>
+              <button class="chart-range-btn" data-range="30m">Last 30m</button>
+            </div>
+          </div>
+
+          <!-- Trend Canvas with interactive hover tooltip -->
+          <div class="trend-canvas-container">
+            <canvas id="mainTrendCanvas" class="main-trend-canvas"></canvas>
+            <div class="chart-tooltip" id="chartTooltip" style="display: none;"></div>
+          </div>
+
+          <div class="trend-legend-bar">
+            <div class="trend-leg-item">
+              <span class="legend-color-line color-occupancy"></span>
+              <span>Live Occupancy</span>
+            </div>
+            <div class="trend-leg-item">
+              <span class="legend-color-line color-queue"></span>
+              <span>Serving Queue Count</span>
+            </div>
+            <div class="trend-leg-item">
+              <span class="legend-color-line color-capacity"></span>
+              <span>Capacity Limit (220)</span>
+            </div>
+            <div class="trend-meta-right">
+              <span id="chartPointsCount">30 Observations</span>
             </div>
           </div>
         </div>
 
-        <!-- Viewfinder Toolbar -->
-        <div class="viewfinder-toolbar">
-          <div class="toolbar-group">
-            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
-              <input type="checkbox" id="toggleBoxes" checked /> Bounding Boxes
-            </label>
-            <label style="font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer; margin-left: 0.5rem;">
-              <input type="checkbox" id="toggleLabels" checked /> Person Tag & %
-            </label>
+        <!-- ROW 4: AI INSIGHTS & CROWD PREDICTION ENGINE -->
+        <div class="card ai-insights-card">
+          <div class="card-header">
+            <div>
+              <span class="card-eyebrow"><span>⚡</span> TRANSPARENT STATISTICAL AI INSIGHTS</span>
+              <h3 class="card-title">Real-Time Dining Intelligence & Trend Projections</h3>
+            </div>
+            <span class="forecast-horizon-pill" id="forecastHorizonTag">HORIZON: 15–30 MINS</span>
           </div>
 
-          <div class="toolbar-group">
-            <button class="btn btn-secondary btn-sm" id="btnFullscreen">
-              ⛶ Fullscreen
+          <div class="insights-grid" id="insightsGrid">
+            <!-- Dynamic AI Insight 1: Velocity -->
+            <div class="insight-box" id="insightVelocity">
+              <div class="insight-top">
+                <span class="insight-type">CROWD VELOCITY</span>
+                <span class="insight-confidence">Confidence: 92%</span>
+              </div>
+              <div class="insight-title" id="velocityTitle">Arrival Velocity: Stable</div>
+              <p class="insight-text" id="velocityText">Net student arrival rate is currently balanced with meal departures. Seating capacity is holding steady.</p>
+              <div class="insight-meta">Basis: Rolling delta observations • Limitation: Subject to class bell schedules</div>
+            </div>
+
+            <!-- Dynamic AI Insight 2: Queue Discharge -->
+            <div class="insight-box" id="insightQueue">
+              <div class="insight-top">
+                <span class="insight-type">QUEUE DISCHARGE</span>
+                <span class="insight-confidence">Confidence: 89%</span>
+              </div>
+              <div class="insight-title" id="queueClearanceTitle">Queue Clearance Rate: ~4.5 mins</div>
+              <p class="insight-text" id="queueClearanceText">Serving lines are operating at target throughput. Expected waiting time will remain under 5 minutes for next 15 minutes.</p>
+              <div class="insight-meta">Basis: Little's Law Queuing Model • Active Counters: 3</div>
+            </div>
+
+            <!-- Dynamic AI Insight 3: Peak Proximity -->
+            <div class="insight-box" id="insightPeak">
+              <div class="insight-top">
+                <span class="insight-type">PEAK WINDOW PROJECTION</span>
+                <span class="insight-confidence">Confidence: 85%</span>
+              </div>
+              <div class="insight-title" id="peakForecastTitle">Peak Rush Expected at 1:15 PM</div>
+              <p class="insight-text" id="peakForecastText">Historical cross-validation indicates dining rush accelerates between 12:45 PM and 1:30 PM. Optimal window to visit is before 12:40 PM.</p>
+              <div class="insight-meta">Basis: Multi-day meal period aggregation • Horizon: Next 45 mins</div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 2: LIVE AI MONITORING STUDIO -->
+      <!-- ======================================================== -->
+      <section class="view-panel" id="viewLiveStudio">
+        
+        <!-- VIDEO INPUT SOURCE SELECTOR BAR -->
+        <div class="video-source-selector-bar">
+          <div class="source-selector-heading">
+            <span class="source-selector-icon">⚡</span>
+            <span class="source-selector-title">VIDEO INPUT SELECTOR</span>
+            <span class="source-selector-badge" id="currentSourceBadge">MOBILE CAMERA ACTIVE</span>
+          </div>
+          <div class="source-buttons-strip">
+            <button type="button" class="source-nav-btn" id="btnSrcWebcam" data-source="webcam">
+              <span class="src-icon">💻</span>
+              <span class="src-label">1. Laptop Webcam</span>
+              <span class="src-status-dot" id="dotSrcWebcam"></span>
+            </button>
+            <button type="button" class="source-nav-btn active" id="btnSrcMobile" data-source="mobile">
+              <span class="src-icon">📱</span>
+              <span class="src-label">2. Mobile Camera</span>
+              <span class="src-status-dot live" id="dotSrcMobile"></span>
+            </button>
+            <button type="button" class="source-nav-btn" id="btnSrcCctv" data-source="cctv">
+              <span class="src-icon">📹</span>
+              <span class="src-label">3. Live CCTV / IP Camera</span>
+              <span class="src-status-dot" id="dotSrcCctv"></span>
+            </button>
+            <button type="button" class="source-nav-btn" id="btnSrcSample" data-source="sample">
+              <span class="src-icon">🎞️</span>
+              <span class="src-label">4. Sample Video</span>
+              <span class="src-status-dot" id="dotSrcSample"></span>
+            </button>
+            <button type="button" class="source-nav-btn" id="btnSrcDemo" data-source="demo">
+              <span class="src-icon">⚡</span>
+              <span class="src-label">5. Demo Scenario</span>
+              <span class="src-status-dot" id="dotSrcDemo"></span>
             </button>
           </div>
         </div>
 
-      </div>
-    </section>
+        <div class="studio-layout-grid">
+          
+          <!-- LEFT / MAIN: Live Camera Viewport -->
+          <div class="studio-viewport-col">
+            <div class="card viewfinder-card">
+              <div class="viewfinder-wrapper" id="viewfinderWrapper">
+                <!-- Video Element -->
+                <video id="remoteVideo" autoplay playsinline muted></video>
 
-    <!-- RIGHT COLUMN: Occupancy & Detection Analytics -->
-    <aside class="right-column">
-      
-      <!-- Hero Human Count Card -->
-      <section class="card hero-count-card" aria-labelledby="count-title">
-        <h2 class="hero-count-label" id="count-title">Total Human Count</h2>
-        <div class="hero-count-value" id="heroCount">0</div>
-        <div class="hero-count-sub" id="heroCountSub">Raw Detection: 0 | Smoothed Window: 7f</div>
+                <!-- Bounding Box Canvas -->
+                <canvas id="detectionCanvas"></canvas>
 
-        <!-- Crowd Strength Badge -->
-        <div class="crowd-tier-badge tier-low" id="crowdBadge">
-          Crowd Level: LOW
+                <!-- Empty State Overlay (No stream connected) -->
+                <div class="viewfinder-empty-state" id="emptyState">
+                  <div class="radar-circle">
+                    <span class="radar-icon">📡</span>
+                  </div>
+                  <h3 class="empty-title">Waiting for Video Source...</h3>
+                  <p class="empty-desc" id="emptyStateDesc">
+                    Select a video source above. You can connect your smartphone camera via QR code, test your laptop webcam, connect a live CCTV / IP camera, or upload sample footage for frame-by-frame AI inference.
+                  </p>
+                  <div class="empty-actions">
+                    <button class="btn btn-primary" id="btnTestWebcam">
+                      💻 Test Laptop Webcam
+                    </button>
+                    <button class="btn btn-secondary" id="btnQuickSampleUpload">
+                      🎞️ Upload Sample Video
+                    </button>
+                    <button class="btn btn-secondary" id="btnTriggerDemoFromStudio">
+                      ⚡ Launch Demo Scenario
+                    </button>
+                  </div>
+                </div>
+
+                <!-- HUD Status Overlays -->
+                <div class="viewfinder-hud-top">
+                  <div class="hud-tag" id="hudStreamTag">
+                    <span class="hud-dot" id="hudStreamDot"></span>
+                    <span id="hudSource">NO SIGNAL</span>
+                  </div>
+                  <div class="hud-metrics-group">
+                    <span class="hud-tag" id="hudResolution">--</span>
+                    <span class="hud-tag" id="hudFps">-- FPS</span>
+                    <span class="hud-tag" id="hudDetectedCount">0 Detected</span>
+                  </div>
+                </div>
+
+                <div class="viewfinder-hud-bottom">
+                  <span class="hud-tag" id="hudZoneTag">Zones: Active</span>
+                  <button class="hud-btn" id="btnFullscreen" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                </div>
+              </div>
+
+              <!-- Viewport Controls Bar -->
+              <div class="viewfinder-toolbar">
+                <div class="toolbar-checkboxes">
+                  <label class="cb-label">
+                    <input type="checkbox" id="toggleBoxes" checked /> Bounding Boxes
+                  </label>
+                  <label class="cb-label">
+                    <input type="checkbox" id="toggleLabels" checked /> Person Tags & %
+                  </label>
+                  <label class="cb-label">
+                    <input type="checkbox" id="toggleZonesOverlay" checked /> Zone Boundaries (ROI)
+                  </label>
+                </div>
+
+                <div class="toolbar-buttons">
+                  <button class="btn btn-secondary btn-sm" id="btnSnapshot" title="Capture visual audit snapshot">
+                    📸 Snapshot
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btnStartStop" title="Pause or Resume Detection">
+                    ⏸ Pause Detection
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Diagnostics Matrix -->
+            <div class="card diagnostics-card">
+              <div class="card-header">
+                <h3 class="card-title">Computer Vision Diagnostics & Stream Telemetry</h3>
+              </div>
+              <div class="diagnostics-grid">
+                <div class="diag-item">
+                  <div class="diag-lbl">Stream Protocol</div>
+                  <div class="diag-val" id="diagProtocol">WebRTC (H.264/VP8)</div>
+                </div>
+                <div class="diag-item">
+                  <div class="diag-lbl">ICE Connection State</div>
+                  <div class="diag-val" id="diagIceState">New / Standby</div>
+                </div>
+                <div class="diag-item">
+                  <div class="diag-lbl">Detection Engine</div>
+                  <div class="diag-val" id="diagEngine">COCO-SSD (lite_mobilenet_v2)</div>
+                </div>
+                <div class="diag-item">
+                  <div class="diag-lbl">Inference Latency</div>
+                  <div class="diag-val" id="diagLatency">-- ms</div>
+                </div>
+                <div class="diag-item">
+                  <div class="diag-lbl">Frame Dropped Rate</div>
+                  <div class="diag-val" id="diagDropRate">0.0%</div>
+                </div>
+                <div class="diag-item">
+                  <div class="diag-lbl">Privacy Mode</div>
+                  <div class="diag-val text-emerald">Active (Zero Facial Capture)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Connection Setup & Detection Controls -->
+          <div class="studio-controls-col">
+            
+            <!-- SOURCE PANEL 1: LAPTOP WEBCAM -->
+            <div class="card connection-setup-card source-config-panel" id="panelSourceWebcam" style="display: none;">
+              <div class="card-header">
+                <h3 class="card-title">💻 Laptop Webcam Connection</h3>
+                <span class="badge-source-type">DIRECT WEBCAM</span>
+              </div>
+              <p class="panel-desc-text">
+                Direct browser media capture via <code>getUserMedia</code>. Zero external plugins required.
+              </p>
+              <div class="form-group" style="margin-top: 0.75rem;">
+                <label for="webcamDeviceSelect" class="form-label">Camera Video Device:</label>
+                <select id="webcamDeviceSelect" class="form-select">
+                  <option value="default">Default System Webcam</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-top: 0.75rem;">
+                <label for="webcamResolutionSelect" class="form-label">Capture Resolution:</label>
+                <select id="webcamResolutionSelect" class="form-select">
+                  <option value="720p" selected>1280 × 720 (HD - Recommended)</option>
+                  <option value="1080p">1920 × 1080 (Full HD)</option>
+                  <option value="480p">640 × 480 (SD - Fast)</option>
+                </select>
+              </div>
+              <div class="panel-action-btns" style="margin-top: 1rem;">
+                <button type="button" class="btn btn-primary" id="btnStartWebcamSource" style="width: 100%;">
+                  ▶ Start Laptop Webcam
+                </button>
+                <button type="button" class="btn btn-secondary" id="btnStopWebcamSource" style="width: 100%; margin-top: 0.5rem; display: none;">
+                  ⏹ Stop Laptop Webcam
+                </button>
+              </div>
+              <div class="conn-status-pill status-waiting" id="webcamStatusPill" style="margin-top: 1rem;">
+                <span class="status-dot-pulse"></span>
+                <span id="webcamStatusText">Webcam on Standby</span>
+              </div>
+            </div>
+
+            <!-- SOURCE PANEL 2: MOBILE CAMERA (Preserved) -->
+            <div class="card connection-setup-card source-config-panel" id="panelSourceMobile">
+              <div class="card-header">
+                <h3 class="card-title">📱 Mobile Camera Connection</h3>
+                <span class="badge-source-type">WEBRTC P2P</span>
+              </div>
+
+              <div class="qr-container">
+                <div class="qr-canvas-box">
+                  <img id="qrImage" alt="Scan QR Code to stream mobile camera" src="" />
+                </div>
+                <p class="qr-instructions">
+                  Scan this QR code with any smartphone camera to open the WebRTC mobile transmitter.
+                </p>
+              </div>
+
+              <!-- Direct URL Box -->
+              <div class="copy-url-group">
+                <input type="text" id="mobileUrlDisplay" class="url-input" readonly value="Loading network URL..." />
+                <button type="button" class="btn btn-secondary btn-sm" id="btnCopyUrl">Copy</button>
+              </div>
+
+              <!-- Connection Status Pill -->
+              <div class="conn-status-pill status-waiting" id="mobileStatusPill">
+                <span class="status-dot-pulse"></span>
+                <span id="mobileStatusText">Waiting for mobile camera...</span>
+              </div>
+
+              <!-- IP Switcher -->
+              <div class="form-group" style="margin-top: 0.85rem;">
+                <label for="ipSelect" class="form-label">LAN Network Adapter:</label>
+                <select id="ipSelect" class="form-select"></select>
+              </div>
+
+              <div class="troubleshoot-btn-wrap">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnReconnect">🔄 Reconnect Signaling</button>
+              </div>
+            </div>
+
+            <!-- SOURCE PANEL 3: LIVE CCTV / IP CAMERA (NEW) -->
+            <div class="card connection-setup-card source-config-panel" id="panelSourceCctv" style="display: none;">
+              <div class="card-header">
+                <h3 class="card-title">📹 Live CCTV / IP Camera</h3>
+                <span class="badge-source-type">IP STREAM</span>
+              </div>
+              <p class="panel-desc-text">
+                Connect an IP surveillance camera, RTSP stream, HTTP/MJPEG feed, or HLS stream for dining hall monitoring.
+              </p>
+
+              <div class="form-group" style="margin-top: 0.75rem;">
+                <label for="cctvCameraName" class="form-label">Camera Identifier / Name:</label>
+                <input type="text" id="cctvCameraName" class="form-input" value="Dining Hall Main Entrance Dome 01" />
+              </div>
+
+              <div class="form-group" style="margin-top: 0.65rem;">
+                <label for="cctvStreamType" class="form-label">Stream Connection Protocol:</label>
+                <select id="cctvStreamType" class="form-select">
+                  <option value="http" selected>HTTP / MJPEG Video Stream (Direct Browser Ingestion)</option>
+                  <option value="hls">HLS (.m3u8) Adaptive HTTP Live Stream</option>
+                  <option value="rtsp">RTSP Surveillance Stream (Ingested via CV Gateway)</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-top: 0.65rem;">
+                <label for="cctvStreamUrl" class="form-label">Stream URL or Endpoint:</label>
+                <input type="url" id="cctvStreamUrl" class="form-input" placeholder="http://192.168.1.50:8080/video or https://..." value="" />
+                <span class="control-hint">Enter your network camera stream URL (HTTP, HTTPS, or RTSP).</span>
+              </div>
+
+              <div class="form-row" style="margin-top: 0.65rem; display: flex; gap: 0.5rem;">
+                <div class="form-col" style="flex: 1;">
+                  <label for="cctvUsername" class="form-label">Username (Optional):</label>
+                  <input type="text" id="cctvUsername" class="form-input" placeholder="admin" autocomplete="off" />
+                </div>
+                <div class="form-col" style="flex: 1;">
+                  <label for="cctvPassword" class="form-label">Password (Optional):</label>
+                  <input type="password" id="cctvPassword" class="form-input" placeholder="••••••••" autocomplete="off" />
+                </div>
+              </div>
+
+              <div class="cctv-actions-strip" style="display: flex; gap: 0.5rem; margin-top: 0.85rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnCctvTest" style="flex: 1;">
+                  🔍 Test Connection
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnCctvConnect" style="flex: 1;">
+                  🔗 Connect
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnCctvDisconnect" style="display: none; flex: 1;">
+                  ⏹ Disconnect
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnCctvReconnect" style="display: none; flex: 1;">
+                  🔄 Reconnect
+                </button>
+              </div>
+
+              <!-- Connection Status Banner -->
+              <div class="cctv-status-banner status-not-configured" id="cctvStatusBanner" style="margin-top: 0.85rem;">
+                <div class="cctv-status-state-row">
+                  <span class="status-indicator-dot" id="cctvStatusDot"></span>
+                  <strong id="cctvStatusState">Not configured</strong>
+                </div>
+                <div class="cctv-status-meta-row">
+                  <span>Last Successful Frame: <strong id="cctvLastFrameTime">None</strong></span>
+                  <span id="cctvLatencyTag"></span>
+                </div>
+                <div class="cctv-status-msg" id="cctvFeedbackMsg">Enter camera stream parameters and click "Test Connection".</div>
+              </div>
+            </div>
+
+            <!-- SOURCE PANEL 4: SAMPLE VIDEO UPLOAD & PROCESSING (NEW) -->
+            <div class="card connection-setup-card source-config-panel" id="panelSourceSample" style="display: none;">
+              <div class="card-header">
+                <h3 class="card-title">🎞️ Sample Video Upload</h3>
+                <span class="badge-source-type">REAL INFERENCE</span>
+              </div>
+              <p class="panel-desc-text">
+                Upload CCTV or dining hall footage (.mp4, .webm). Every frame is decoded and passed through the live computer-vision person detection model.
+              </p>
+
+              <!-- Drag and Drop Dropzone -->
+              <div class="sample-dropzone" id="sampleDropzone">
+                <div class="dropzone-icon">📁</div>
+                <div class="dropzone-text"><strong>Click to select</strong> or drag and drop video file here</div>
+                <div class="dropzone-sub">Supported formats: MP4, WebM (Max 100MB)</div>
+                <input type="file" id="sampleVideoFile" accept="video/mp4,video/webm" style="display: none;" />
+              </div>
+
+              <!-- Selected File Meta -->
+              <div class="sample-file-info-box" id="sampleFileInfoBox" style="display: none; margin-top: 0.75rem;">
+                <div class="file-info-row">
+                  <span class="file-name-label">📄 File:</span>
+                  <strong class="file-name-val" id="sampleFileName">sample.mp4</strong>
+                </div>
+                <div class="file-info-row">
+                  <span class="file-size-label">Size: <span id="sampleFileSize">-- MB</span></span>
+                  <span class="file-validation-badge badge-valid" id="sampleValidationBadge">✓ Valid Video</span>
+                </div>
+              </div>
+
+              <!-- Video Playback & Inference Controls -->
+              <div class="sample-playback-controls" style="margin-top: 0.85rem;">
+                <div class="playback-buttons-row" style="display: flex; gap: 0.5rem;">
+                  <button type="button" class="btn btn-primary btn-sm" id="btnSamplePlayPause" style="flex: 1;" disabled>
+                    ▶ Start Processing
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnSampleRestart" title="Restart from 0:00" disabled>
+                    🔄 Restart
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnSampleStop" title="Stop & Unload Video" disabled>
+                    ⏹ Stop
+                  </button>
+                </div>
+
+                <!-- Timeline Seek Slider -->
+                <div class="timeline-seek-wrapper" style="margin-top: 0.75rem;">
+                  <div class="timeline-meta-row" style="display: flex; justify-content: space-between; font-size: 0.72rem; font-family: var(--font-mono); color: var(--text-muted); margin-bottom: 0.25rem;">
+                    <span>TIMELINE:</span>
+                    <span><strong id="sampleCurrentTime" style="color: var(--text-main);">00:00</strong> / <span id="sampleDuration">00:00</span></span>
+                  </div>
+                  <input type="range" id="sampleSeekSlider" class="range-slider" min="0" max="100" value="0" step="0.1" disabled />
+                </div>
+              </div>
+
+              <!-- Notice on Frame Processing -->
+              <div class="sample-inference-notice" style="margin-top: 0.85rem;">
+                <span class="notice-badge">GENUINE INFERENCE</span>
+                <p>Detection boxes and counts are evaluated frame-by-frame on the uploaded footage using the active AI model. Counts update in real time with the video playhead.</p>
+              </div>
+            </div>
+
+            <!-- SOURCE PANEL 5: DEMO SCENARIO (Preserved) -->
+            <div class="card connection-setup-card source-config-panel" id="panelSourceDemo" style="display: none;">
+              <div class="card-header">
+                <h3 class="card-title">⚡ Demonstration Scenario</h3>
+                <span class="badge-source-type">SYNTHETIC SIMULATION</span>
+              </div>
+              <p class="panel-desc-text">
+                Simulated campus dining rush with synthetic student movements and realistic occupancy fluctuations.
+              </p>
+              <div class="form-group" style="margin-top: 0.75rem;">
+                <label for="demoPresetSelect" class="form-label">Simulation Scenario:</label>
+                <select id="demoPresetSelect" class="form-select">
+                  <option value="lunch_rush" selected>Campus Lunch Peak Rush (12:45 PM - 1:30 PM)</option>
+                  <option value="breakfast">Morning Breakfast Service (8:00 AM)</option>
+                  <option value="evening_snacks">Evening Snack & Tea Bar (5:15 PM)</option>
+                  <option value="dinner_peak">Dinner Complex Congestion (8:15 PM)</option>
+                </select>
+              </div>
+              <div class="panel-action-btns" style="margin-top: 1rem;">
+                <button type="button" class="btn btn-warning" id="btnToggleDemoSource" style="width: 100%;">
+                  ▶ Start Simulation Scenario
+                </button>
+              </div>
+              <div class="conn-status-pill status-demo" style="margin-top: 1rem;">
+                <span class="status-dot-pulse"></span>
+                <span>Synthetic Demo Engine Ready</span>
+              </div>
+            </div>
+
+            <!-- Vision Controls Card -->
+            <div class="card vision-controls-card">
+              <div class="card-header">
+                <h3 class="card-title">⚙️ Vision Detection Controls</h3>
+              </div>
+
+              <!-- Confidence Slider -->
+              <div class="control-row">
+                <div class="control-label-row">
+                  <label for="confidenceSlider" class="form-label">Confidence Threshold</label>
+                  <span class="val-badge" id="confidenceValDisplay">50%</span>
+                </div>
+                <input type="range" id="confidenceSlider" class="range-slider" min="0.2" max="0.9" step="0.05" value="0.5" />
+                <span class="control-hint">Higher values reject ambiguous shapes; lower values catch distant students.</span>
+              </div>
+
+              <!-- Temporal Smoothing -->
+              <div class="control-row">
+                <label for="smoothingSelect" class="form-label">Temporal Smoothing Filter</label>
+                <select id="smoothingSelect" class="form-select">
+                  <option value="1">Off (Instant Raw Detection)</option>
+                  <option value="3">3 Frames (Fast Response)</option>
+                  <option value="7" selected>7 Frames (Balanced Median Filter)</option>
+                  <option value="12">12 Frames (Ultra Stable / No Jitter)</option>
+                </select>
+                <span class="control-hint">Eliminates flickering counts caused by brief occlusion.</span>
+              </div>
+
+              <!-- Audible Alert Toggle -->
+              <div class="control-row switch-row">
+                <div>
+                  <span class="form-label" style="display:block;">Audible Congestion Chimes</span>
+                  <span class="control-hint">Play synthesized acoustic tone on severe crowd surges.</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="soundAlertToggle" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <!-- Audio Test Button -->
+              <div style="margin-top: 0.5rem;">
+                <button class="btn btn-secondary btn-sm" id="btnTestSound" style="width: 100%;">
+                  🔊 Test Alert Chime
+                </button>
+              </div>
+            </div>
+
+          </div>
+
         </div>
 
-        <!-- Real-time Sparkline Trend -->
-        <div class="trend-chart-wrapper">
-          <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-dim); margin-bottom: 0.2rem;">
-            <span>OCCUPANCY TREND (LAST 30s)</span>
-            <span>REAL-TIME</span>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 3: STUDENT CROWD VIEW PREVIEW -->
+      <!-- ======================================================== -->
+      <section class="view-panel" id="viewStudentView">
+        <div class="student-preview-header">
+          <div>
+            <h2 class="card-title">Student Mobile Experience Preview</h2>
+            <p class="card-subtitle">
+              This is the simplified, ultra-fast interface displayed to students on their phones via <code>/student</code>.
+            </p>
           </div>
-          <canvas class="trend-canvas" id="trendCanvas"></canvas>
+          <div class="student-preview-actions">
+            <a href="./student.html" target="_blank" class="btn btn-primary">
+              Open Full Student Web App ↗
+            </a>
+            <button class="btn btn-secondary" id="btnCopyStudentUrl">
+              Copy Student URL
+            </button>
+          </div>
+        </div>
+
+        <div class="student-phone-mockup-wrapper">
+          <div class="phone-frame">
+            <div class="phone-speaker"></div>
+            <iframe src="./student.html" id="studentIframe" class="phone-screen-iframe" title="Student View Live Preview"></iframe>
+          </div>
+          <div class="phone-qr-sidecard card">
+            <h3 class="card-title">Student Direct QR Code</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Print this QR code on dining hall entrance posters or share on student campus WhatsApp/Discord groups.
+            </p>
+            <div class="qr-canvas-box" style="margin: 0 auto 1rem auto; width: 180px; height: 180px;">
+              <img id="studentQrImage" alt="QR code for students" src="" style="width: 100%; height: 100%;" />
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: #38bdf8; word-break: break-all; text-align: center;" id="studentDirectUrlDisplay">
+              Detecting LAN URL...
+            </div>
+          </div>
         </div>
       </section>
 
-      <!-- Detection Statistics Card -->
-      <section class="card" aria-labelledby="stats-title">
-        <div class="card-header">
-          <h2 class="card-title" id="stats-title">
-            <span>📊</span> Detection Statistics
-          </h2>
+      <!-- ======================================================== -->
+      <!-- VIEW 4: QUEUE INTELLIGENCE ENGINE -->
+      <!-- ======================================================== -->
+      <section class="view-panel" id="viewQueueIntel">
+        <div class="card queue-hero-card">
+          <div class="queue-header-row">
+            <div>
+              <span class="card-eyebrow">QUEUING THEORY & BOTTLENECK ANALYSIS</span>
+              <h2 class="card-title" style="font-size: 1.5rem;">Serving Line Dynamics</h2>
+            </div>
+            <div class="queue-status-tag tag-fluid" id="queueSeverityTag">
+              FLOW: NORMAL
+            </div>
+          </div>
+
+          <div class="queue-metrics-strip">
+            <div class="q-metric-box">
+              <span class="q-metric-lbl">Queue Length</span>
+              <span class="q-metric-val" id="qIntelQueueLength">0</span>
+              <span class="q-metric-sub">students in line</span>
+            </div>
+
+            <div class="q-metric-box">
+              <span class="q-metric-lbl">Estimated Wait Time</span>
+              <span class="q-metric-val" id="qIntelWaitMins">~1-2</span>
+              <span class="q-metric-sub">minutes until served</span>
+            </div>
+
+            <div class="q-metric-box">
+              <span class="q-metric-lbl">Throughput Rate</span>
+              <span class="q-metric-val" id="qIntelThroughput">4.0</span>
+              <span class="q-metric-sub">students / min</span>
+            </div>
+
+            <div class="q-metric-box">
+              <span class="q-metric-lbl">Queue Growth Rate</span>
+              <span class="q-metric-val" id="qIntelGrowthRate">Stable</span>
+              <span class="q-metric-sub">Velocity: ±0 / min</span>
+            </div>
+          </div>
         </div>
 
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-item-label">Average Count</div>
-            <div class="stat-item-value" id="statAvgCount">0.0</div>
+        <div class="queue-details-grid">
+          
+          <!-- Serving Counters Status -->
+          <div class="card counters-status-card">
+            <div class="card-header">
+              <h3 class="card-title">Serving Counter Allocations</h3>
+            </div>
+            <div class="counters-list" id="countersList">
+              <div class="counter-row">
+                <div class="counter-badge badge-active">Counter #1</div>
+                <div class="counter-info">
+                  <strong>Vegetarian Thali / Rice Line</strong>
+                  <span>Active • Moving fluidly (~38s avg)</span>
+                </div>
+                <div class="counter-stat text-emerald">● Optimal</div>
+              </div>
+              <div class="counter-row">
+                <div class="counter-badge badge-active">Counter #2</div>
+                <div class="counter-info">
+                  <strong>Non-Vegetarian / Special Entree</strong>
+                  <span>Active • Moderate demand (~48s avg)</span>
+                </div>
+                <div class="counter-stat text-amber">● Active</div>
+              </div>
+              <div class="counter-row">
+                <div class="counter-badge badge-active">Counter #3</div>
+                <div class="counter-info">
+                  <strong>Rotis, Salads & Dessert Counter</strong>
+                  <span>Active • Fast throughput (~25s avg)</span>
+                </div>
+                <div class="counter-stat text-emerald">● Optimal</div>
+              </div>
+              <div class="counter-row">
+                <div class="counter-badge badge-standby">Counter #4</div>
+                <div class="counter-info">
+                  <strong>Backup Surge Counter</strong>
+                  <span>Standby • Ready to activate during peak</span>
+                </div>
+                <div class="counter-stat text-muted">Standby</div>
+              </div>
+            </div>
           </div>
-          <div class="stat-item">
-            <div class="stat-item-label">Maximum Peak</div>
-            <div class="stat-item-value" id="statMaxCount">0</div>
+
+          <!-- Interactive Wait Time Calculator -->
+          <div class="card wait-calculator-card">
+            <div class="card-header">
+              <h3 class="card-title">Interactive Service Throughput Simulator</h3>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Adjust parameters to see how counter staffing directly impacts queue clearance and student waiting times:
+            </p>
+
+            <div class="calc-slider-group">
+              <label for="simCountersSlider" class="form-label">Active Food Counters: <strong id="simCountersVal" class="text-cyan">3</strong></label>
+              <input type="range" id="simCountersSlider" class="range-slider" min="1" max="4" value="3" />
+            </div>
+
+            <div class="calc-slider-group" style="margin-top: 1rem;">
+              <label for="simServiceTimeSlider" class="form-label">Average Service Time Per Student: <strong id="simServiceTimeVal" class="text-cyan">45s</strong></label>
+              <input type="range" id="simServiceTimeSlider" class="range-slider" min="20" max="90" step="5" value="45" />
+            </div>
+
+            <div class="sim-result-box">
+              <div class="sim-res-item">
+                <span class="sim-res-lbl">Simulated Throughput</span>
+                <span class="sim-res-val" id="simThroughputRes">4.0 students/min</span>
+              </div>
+              <div class="sim-res-item">
+                <span class="sim-res-lbl">Time to Clear 30 Students</span>
+                <span class="sim-res-val" id="simClearTimeRes">7.5 mins</span>
+              </div>
+            </div>
           </div>
-          <div class="stat-item">
-            <div class="stat-item-label">Avg Confidence</div>
-            <div class="stat-item-value" id="statConfidence">--</div>
+
+        </div>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 5: INTELLIGENT ZONE MONITORING -->
+      <!-- ======================================================== -->
+      <section class="view-panel" id="viewZones">
+        <div class="card zone-overview-card">
+          <div class="card-header">
+            <div>
+              <span class="card-eyebrow">SPATIAL CROWD DISTRIBUTION</span>
+              <h2 class="card-title" style="font-size: 1.4rem;">Dining Hall Spatial Blueprint & Zones</h2>
+            </div>
+            <span class="card-subtitle">Region-of-Interest (ROI) computer-vision bounding-box attribution</span>
           </div>
-          <div class="stat-item">
-            <div class="stat-item-label">Inference FPS</div>
-            <div class="stat-item-value" id="statInferenceFps">--</div>
+
+          <!-- Interactive Schematic Floor Plan -->
+          <div class="floorplan-container">
+            <div class="floorplan-grid">
+              
+              <!-- Zone 1: Food Serving Counter -->
+              <div class="floor-zone zone-counter" id="fpZoneCounter">
+                <div class="zone-header">
+                  <span class="zone-badge">ZONE 1</span>
+                  <span class="zone-status-dot dot-low"></span>
+                </div>
+                <div class="zone-body">
+                  <h4 class="zone-name">Food Serving Counter & Queues</h4>
+                  <div class="zone-occupancy-number">
+                    <span id="zoneCounterCount">0</span> / 45 seats
+                  </div>
+                  <div class="zone-bar"><div class="zone-bar-fill" id="zoneCounterBar" style="width: 0%;"></div></div>
+                  <span class="zone-congestion-lbl" id="zoneCounterCongestion">Flow: Fluid</span>
+                </div>
+              </div>
+
+              <!-- Zone 2: Main Dining Tables -->
+              <div class="floor-zone zone-dining" id="fpZoneDining">
+                <div class="zone-header">
+                  <span class="zone-badge">ZONE 2</span>
+                  <span class="zone-status-dot dot-low"></span>
+                </div>
+                <div class="zone-body">
+                  <h4 class="zone-name">Main Dining Tables Section</h4>
+                  <div class="zone-occupancy-number">
+                    <span id="zoneDiningCount">0</span> / 140 seats
+                  </div>
+                  <div class="zone-bar"><div class="zone-bar-fill" id="zoneDiningBar" style="width: 0%;"></div></div>
+                  <span class="zone-congestion-lbl" id="zoneDiningCongestion">Available Seating</span>
+                </div>
+              </div>
+
+              <!-- Zone 3: Express Snack Bar -->
+              <div class="floor-zone zone-express" id="fpZoneExpress">
+                <div class="zone-header">
+                  <span class="zone-badge">ZONE 3</span>
+                  <span class="zone-status-dot dot-low"></span>
+                </div>
+                <div class="zone-body">
+                  <h4 class="zone-name">Express Beverage & Snack Bar</h4>
+                  <div class="zone-occupancy-number">
+                    <span id="zoneExpressCount">0</span> / 20 seats
+                  </div>
+                  <div class="zone-bar"><div class="zone-bar-fill" id="zoneExpressBar" style="width: 0%;"></div></div>
+                  <span class="zone-congestion-lbl" id="zoneExpressCongestion">Normal Flow</span>
+                </div>
+              </div>
+
+              <!-- Zone 4: Entrance & Waiting -->
+              <div class="floor-zone zone-entry" id="fpZoneEntry">
+                <div class="zone-header">
+                  <span class="zone-badge">ZONE 4</span>
+                  <span class="zone-status-dot dot-low"></span>
+                </div>
+                <div class="zone-body">
+                  <h4 class="zone-name">Entrance & Waiting Vestibule</h4>
+                  <div class="zone-occupancy-number">
+                    <span id="zoneEntryCount">0</span> / 15 seats
+                  </div>
+                  <div class="zone-bar"><div class="zone-bar-fill" id="zoneEntryBar" style="width: 0%;"></div></div>
+                  <span class="zone-congestion-lbl" id="zoneEntryCongestion">Clear Entry</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="zone-tech-note">
+            <span>🔍 <strong>Computer Vision Technical Note:</strong> Person center coordinates <code>(x + w/2, y + h/2)</code> returned by the object detector are mapped against configured spatial polygons to determine exact zone occupancy without facial recognition.</span>
           </div>
         </div>
       </section>
 
-      <!-- Vision Engine Controls -->
-      <section class="card" aria-labelledby="settings-title">
-        <div class="card-header">
-          <h2 class="card-title" id="settings-title">
-            <span>⚙️</span> Detection Controls
-          </h2>
+      <!-- ======================================================== -->
+      <!-- VIEW 6: CROWD ANALYTICS & HISTORICAL INSIGHTS -->
+      <!-- ======================================================== -->
+      <section class="view-panel" id="viewAnalytics">
+        <div class="analytics-header-row">
+          <div>
+            <h2 class="card-title">Campus Dining Rush Patterns & Analytics</h2>
+            <p class="card-subtitle">Aggregated hourly patterns, peak times, and capacity utilization history</p>
+          </div>
+          <button class="btn btn-secondary" id="btnExportData">
+            📥 Export Session Data (JSON)
+          </button>
         </div>
 
-        <div class="setting-row">
-          <label class="setting-label" for="confidenceSlider">Confidence Threshold</label>
-          <span class="setting-val-display" id="confidenceValDisplay">50%</span>
+        <!-- Hourly Heatmap Matrix -->
+        <div class="card heatmap-card">
+          <div class="card-header">
+            <h3 class="card-title">Hourly Congestion Intensity Heatmap (7:00 AM – 10:00 PM)</h3>
+          </div>
+          <div class="heatmap-grid" id="heatmapGrid">
+            <!-- Dynamically populated -->
+          </div>
+          <div class="heatmap-legend">
+            <span>Low (&lt; 25%)</span>
+            <span class="heat-chip heat-1"></span>
+            <span class="heat-chip heat-2"></span>
+            <span class="heat-chip heat-3"></span>
+            <span class="heat-chip heat-4"></span>
+            <span>Critical (&gt; 85%)</span>
+          </div>
         </div>
-        <input type="range" id="confidenceSlider" class="slider-input" min="0.2" max="0.9" step="0.05" value="0.5" />
 
-        <div class="setting-row" style="margin-top: 0.85rem;">
-          <label class="setting-label" for="smoothingSelect">Temporal Smoothing</label>
-          <select id="smoothingSelect" class="select-input">
-            <option value="1">Off (Instant Raw)</option>
-            <option value="3">3 Frames (Fast)</option>
-            <option value="7" selected>7 Frames (Balanced)</option>
-            <option value="12">12 Frames (Ultra Stable)</option>
-          </select>
-        </div>
+        <!-- Multi-metric Analytics Grid -->
+        <div class="analytics-summary-grid">
+          <div class="card stat-summary-card">
+            <h4 class="card-title" style="font-size: 1rem;">Peak Meal Windows</h4>
+            <div class="pattern-item">
+              <span class="pattern-meal">Lunch Peak Rush</span>
+              <strong class="pattern-time text-rose">12:45 PM – 01:45 PM</strong>
+              <span class="pattern-val">Avg. 185 students (84% cap)</span>
+            </div>
+            <div class="pattern-item">
+              <span class="pattern-meal">Dinner Peak Rush</span>
+              <strong class="pattern-time text-rose">08:00 PM – 09:00 PM</strong>
+              <span class="pattern-val">Avg. 195 students (88% cap)</span>
+            </div>
+            <div class="pattern-item">
+              <span class="pattern-meal">Breakfast Peak</span>
+              <strong class="pattern-time text-amber">08:15 AM – 09:00 AM</strong>
+              <span class="pattern-val">Avg. 120 students (55% cap)</span>
+            </div>
+          </div>
 
-        <div class="setting-row" style="margin-top: 0.85rem;">
-          <label class="setting-label" for="soundAlertToggle">Audible Crowd Alert</label>
-          <input type="checkbox" id="soundAlertToggle" />
+          <div class="card stat-summary-card">
+            <h4 class="card-title" style="font-size: 1rem;">Recommended Off-Peak Windows</h4>
+            <div class="pattern-item">
+              <span class="pattern-meal">Early Lunch</span>
+              <strong class="pattern-time text-emerald">12:15 PM – 12:40 PM</strong>
+              <span class="pattern-val">Seating &lt; 40% full • 2 min wait</span>
+            </div>
+            <div class="pattern-item">
+              <span class="pattern-meal">Late Lunch</span>
+              <strong class="pattern-time text-emerald">02:00 PM – 02:30 PM</strong>
+              <span class="pattern-val">Queues cleared • Fast dining</span>
+            </div>
+            <div class="pattern-item">
+              <span class="pattern-meal">Early Dinner</span>
+              <strong class="pattern-time text-emerald">07:30 PM – 07:55 PM</strong>
+              <span class="pattern-val">Comfortable tables • No wait</span>
+            </div>
+          </div>
         </div>
       </section>
 
-    </aside>
+      <!-- ======================================================== -->
+      <!-- VIEW 7: ALERTS AND EVENTS -->
+      <!-- ======================================================== -->
+      <section class="view-panel" id="viewAlerts">
+        <div class="alerts-header-row">
+          <div>
+            <h2 class="card-title">Alert & Incident Center</h2>
+            <p class="card-subtitle">Real-time event journal capturing crowd threshold crossings, queue surges, and camera connectivity</p>
+          </div>
+          <div class="alerts-filter-group">
+            <button class="filter-btn active" data-filter="ALL">All Events</button>
+            <button class="filter-btn" data-filter="CRITICAL">Critical</button>
+            <button class="filter-btn" data-filter="WARNING">Warnings</button>
+            <button class="filter-btn" data-filter="INFO">Info</button>
+          </div>
+        </div>
 
-  </main>
+        <div class="card events-list-card">
+          <div class="events-list" id="eventsListContainer">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
 
-  <!-- Load TensorFlow.js (Local Vendor with CDN fallback) -->
-  <script src="/vendor/tf.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';"></script>
-  <!-- Load COCO-SSD (Local Vendor with CDN fallback) -->
-  <script src="/vendor/coco-ssd.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js';"></script>
+      <!-- ======================================================== -->
+      <!-- VIEW 8: SETTINGS & CONFIGURATION -->
+      <!-- ======================================================== -->
+      <section class="view-panel" id="viewSettings">
+        <div class="card settings-container-card">
+          <div class="card-header">
+            <h2 class="card-title">Dining Intelligence Parameters & Thresholds</h2>
+            <p class="card-subtitle">Configure mess capacity limits, queue alert triggers, and meal schedules</p>
+          </div>
+
+          <form id="settingsForm" class="settings-form">
+            
+            <div class="settings-section">
+              <h3 class="settings-group-title">Mess Information</h3>
+              <div class="form-row">
+                <div class="form-col">
+                  <label class="form-label" for="cfgMessName">Mess / Dining Hall Name</label>
+                  <input type="text" id="cfgMessName" class="form-input" value="Central Campus Dining Hall" />
+                </div>
+                <div class="form-col">
+                  <label class="form-label" for="cfgCapacity">Total Seating Capacity</label>
+                  <input type="number" id="cfgCapacity" class="form-input" value="220" min="10" max="1000" />
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3 class="settings-group-title">Crowd Level Thresholds (Persons)</h3>
+              <div class="form-row">
+                <div class="form-col">
+                  <label class="form-label" for="cfgLowMax">Low Tier Maximum (Green)</label>
+                  <input type="number" id="cfgLowMax" class="form-input" value="65" />
+                  <span class="control-hint">0 – 65 people: Comfortable</span>
+                </div>
+                <div class="form-col">
+                  <label class="form-label" for="cfgModerateMax">Moderate Tier Maximum (Amber)</label>
+                  <input type="number" id="cfgModerateMax" class="form-input" value="135" />
+                  <span class="control-hint">66 – 135 people: Increasing</span>
+                </div>
+                <div class="form-col">
+                  <label class="form-label" for="cfgHighMax">High Tier Maximum (Orange)</label>
+                  <input type="number" id="cfgHighMax" class="form-input" value="185" />
+                  <span class="control-hint">136 – 185: Busy (186+: Critical)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3 class="settings-group-title">Queue & Service Estimation Parameters</h3>
+              <div class="form-row">
+                <div class="form-col">
+                  <label class="form-label" for="cfgActiveCounters">Active Serving Counters</label>
+                  <input type="number" id="cfgActiveCounters" class="form-input" value="3" min="1" max="10" />
+                </div>
+                <div class="form-col">
+                  <label class="form-label" for="cfgServiceSec">Avg Service Seconds Per Person</label>
+                  <input type="number" id="cfgServiceSec" class="form-input" value="45" min="15" max="180" />
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3 class="settings-group-title">Live Student Announcement</h3>
+              <div class="form-row">
+                <div class="form-col" style="flex: 1;">
+                  <label class="form-label" for="cfgAnnouncement">Broadcast Message to Student View</label>
+                  <input type="text" id="cfgAnnouncement" class="form-input" value="Fresh meal service active across all 3 serving counters." />
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-actions">
+              <button type="submit" class="btn btn-primary" id="btnSaveSettings">
+                💾 Save Configuration
+              </button>
+              <span class="save-status-msg" id="saveStatusMsg"></span>
+            </div>
+
+          </form>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Audio Context Chime Generator (Hidden Element) -->
+  <div id="audioAlertNode" style="display: none;"></div>
+
+  <!-- Vendor Dependencies (TensorFlow.js & COCO-SSD) -->
+  <script src="./vendor/tf.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js';"></script>
+  <script src="./vendor/coco-ssd.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js';"></script>
   
-  <!-- WebRTC and Dashboard Logic -->
-  <script src="/js/webrtc-common.js"></script>
-  <script src="/js/dashboard.js"></script>
+  <!-- WebRTC and MESSPULSE AI Dashboard Engine -->
+  <script src="./js/webrtc-common.js"></script>
+  <script src="./js/dashboard.js"></script>
 </body>
 </html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MESSPULSE AI • Campus Mess Crowd & Queue Live Status</title>
+  <meta name="description" content="Real-time campus dining crowd status, queue wait times, and smart visit recommendations for students.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/student.css">
+</head>
+<body>
+
+  <!-- Top Navigation & Branding -->
+  <header class="student-header">
+    <div class="brand-block">
+      <div class="pulse-gem">
+        <span class="pulse-core"></span>
+      </div>
+      <div>
+        <div class="brand-tag">MESSPULSE <span class="ai-badge">AI</span></div>
+        <h1 class="mess-name" id="displayMessName">Central Campus Dining Hall</h1>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="live-pill" id="liveSyncPill">
+        <span class="live-ping"></span>
+        <span id="syncText">SYNCING</span>
+      </div>
+      <a href="./index.html" class="admin-link-btn" title="Open Administrator Workstation">Admin Ops &rarr;</a>
+    </div>
+  </header>
+
+  <!-- Live Notice / Announcement Banner -->
+  <aside class="announcement-bar" id="announcementBar" style="display: none;">
+    <span class="anno-icon">📢</span>
+    <span class="anno-text" id="announcementText"></span>
+  </aside>
+
+  <!-- Main Container -->
+  <main class="student-container">
+
+    <!-- HERO CROWD DECISION CARD -->
+    <section class="crowd-hero-card" id="crowdHeroCard">
+      <div class="hero-top-meta">
+        <span class="meal-badge" id="mealPeriodBadge">Lunch Service</span>
+        <span class="freshness-tag" id="freshnessTag">Updated just now</span>
+      </div>
+
+      <!-- Giant Visual Status -->
+      <div class="status-visual-row">
+        <div class="status-orb" id="statusOrb">
+          <div class="orb-inner" id="orbInner">
+            <span class="orb-emoji" id="orbEmoji">🟢</span>
+          </div>
+        </div>
+
+        <div class="status-text-block">
+          <div class="status-subhead">CURRENT DINING STATUS</div>
+          <h2 class="status-title" id="statusTitle">Comfortable & Ready</h2>
+          <div class="decision-pill" id="decisionPill">
+            <span class="decision-icon">⚡</span>
+            <span id="decisionText">Great time to go! Minimal waiting.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Capacity Progress Bar -->
+      <div class="capacity-block">
+        <div class="capacity-labels">
+          <span>Dining Hall Occupancy</span>
+          <span class="capacity-numbers"><strong id="heroOccupancyVal">0</strong> / <span id="heroCapacityVal">220</span> seats (<span id="heroOccupancyPct">0%</span>)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+        </div>
+        <div class="capacity-scale">
+          <span>0 (Empty)</span>
+          <span>Comfortable</span>
+          <span>Busy</span>
+          <span>Full</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- KEY STUDENT METRICS GRID -->
+    <section class="metrics-grid">
+      <!-- Card 1: Estimated Wait -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-icon">⏱️</span>
+          <span class="metric-label">Estimated Wait</span>
+        </div>
+        <div class="metric-value-row">
+          <span class="metric-big-num" id="waitMinutesVal">~1-2</span>
+          <span class="metric-unit">min</span>
+        </div>
+        <div class="metric-footer" id="waitExplain">Walk-in speed • No queue delay</div>
+      </div>
+
+      <!-- Card 2: Food Counters -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-icon">🍲</span>
+          <span class="metric-label">Active Serving Counters</span>
+        </div>
+        <div class="metric-value-row">
+          <span class="metric-big-num" id="activeCountersVal">3</span>
+          <span class="metric-unit">lines open</span>
+        </div>
+        <div class="metric-footer">Veg & Non-Veg lines operational</div>
+      </div>
+
+      <!-- Card 3: Queue Length -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-icon">🚶</span>
+          <span class="metric-label">People in Line</span>
+        </div>
+        <div class="metric-value-row">
+          <span class="metric-big-num" id="queueCountVal">0</span>
+          <span class="metric-unit">students</span>
+        </div>
+        <div class="metric-footer" id="queueStatusText">Queue is fluid & moving quickly</div>
+      </div>
+
+      <!-- Card 4: Best Alternative Time -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-icon">💡</span>
+          <span class="metric-label">Smart Recommendation</span>
+        </div>
+        <div class="metric-value-row">
+          <span class="metric-big-num" style="font-size: 1.25rem;" id="suggestedTimeVal">Go Now</span>
+        </div>
+        <div class="metric-footer" id="recAdvice">Dining hall conditions are optimal right now</div>
+      </div>
+    </section>
+
+    <!-- SECTION: BEST TIME TO VISIT TODAY -->
+    <section class="section-card">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-icon">📊</span>
+          <h3 class="section-title">Today's Dining Rush Patterns</h3>
+        </div>
+        <span class="section-sub">Historical crowd curve</span>
+      </div>
+
+      <div class="timeline-container">
+        <div class="timeline-slot" data-hour="08:00">
+          <div class="slot-bar-wrap"><div class="slot-bar bar-medium" style="height: 55%;"></div></div>
+          <span class="slot-label">8 AM</span>
+          <span class="slot-crowd">Breakfast</span>
+        </div>
+        <div class="timeline-slot" data-hour="09:00">
+          <div class="slot-bar-wrap"><div class="slot-bar bar-low" style="height: 30%;"></div></div>
+          <span class="slot-label">9 AM</span>
+          <span class="slot-crowd">Light</span>
+        </div>
+        <div class="timeline-slot" data-hour="12:00">
+          <div class="slot-bar-wrap"><div class="slot-bar bar-medium" style="height: 65%;"></div></div>
+          <span class="slot-label">12 PM</span>
+          <span class="slot-crowd">Rising</span>
+        </div>
+        <div class="timeline-slot active-slot" data-hour="13:00">
+          <div class="slot-bar-wrap"><div class="slot-bar bar-high" style="height: 88%;"></div></div>
+          <span class="slot-label">1 PM</span>
+          <span class="slot-crowd">Peak Rush</span>
+        </div>
+        <div class="timeline-slot" data-hour="14:00">
+          <div class="slot-bar-wrap"><div class="slot-bar bar-low" style="height: 35%;"></div></div>
+          <span class="slot-label">2 PM</span>
+          <span class="slot-crowd">Clearing</span>
+        </div>
+        <div class="timeline-slot" data-hour="17:30">
+          <div class="slot-bar-wrap"><div class="slot-bar bar-medium" style="height: 50%;"></div></div>
+          <span class="slot-label">5:30 PM</span>
+          <span class="slot-crowd">Snacks</span>
+        </div>
+        <div class="timeline-slot" data-hour="20:00">
+          <div class="slot-bar-wrap"><div class="slot-bar bar-high" style="height: 90%;"></div></div>
+          <span class="slot-label">8 PM</span>
+          <span class="slot-crowd">Dinner Peak</span>
+        </div>
+        <div class="timeline-slot" data-hour="21:00">
+          <div class="slot-bar-wrap"><div class="slot-bar bar-low" style="height: 40%;"></div></div>
+          <span class="slot-label">9 PM</span>
+          <span class="slot-crowd">Easy Seating</span>
+        </div>
+      </div>
+
+      <div class="timeline-legend">
+        <span class="leg-item"><span class="leg-dot dot-low"></span> Comfortable (&lt; 35%)</span>
+        <span class="leg-item"><span class="leg-dot dot-med"></span> Moderate (35 - 75%)</span>
+        <span class="leg-item"><span class="leg-dot dot-high"></span> Heavy Rush (&gt; 75%)</span>
+      </div>
+    </section>
+
+    <!-- SECTION: MEAL SCHEDULE & MENU -->
+    <section class="section-card">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-icon">🕒</span>
+          <h3 class="section-title">Mess Schedule & Timings</h3>
+        </div>
+      </div>
+
+      <div class="schedule-grid">
+        <div class="schedule-item">
+          <div class="sched-meal">🍳 Breakfast</div>
+          <div class="sched-time" id="timeBreakfast">07:30 AM - 09:30 AM</div>
+          <div class="sched-status status-closed">Closed</div>
+        </div>
+        <div class="schedule-item sched-current">
+          <div class="sched-meal">🍱 Lunch</div>
+          <div class="sched-time" id="timeLunch">12:15 PM - 02:30 PM</div>
+          <div class="sched-status status-open">● Serving Now</div>
+        </div>
+        <div class="schedule-item">
+          <div class="sched-meal">☕ Evening Snacks</div>
+          <div class="sched-time" id="timeSnacks">05:00 PM - 06:30 PM</div>
+          <div class="sched-status status-upcoming">Next Service</div>
+        </div>
+        <div class="schedule-item">
+          <div class="sched-meal">🍲 Dinner</div>
+          <div class="sched-time" id="timeDinner">07:30 PM - 09:45 PM</div>
+          <div class="sched-status status-upcoming">Later</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: LIVE CAMERA VERIFICATION / PROVENANCE -->
+    <section class="provenance-card">
+      <div class="prov-icon">👁️‍🗨️</div>
+      <div class="prov-content">
+        <div class="prov-title">Real-Time Computer Vision Intelligence</div>
+        <p class="prov-desc">
+          Occupancy and queue counts are estimated directly from AI camera feeds using anonymized human presence detection. No student faces or identities are tracked or stored.
+        </p>
+        <div class="prov-meta">
+          <span>Camera Stream: <strong id="provSource">Live Connected</strong></span> • 
+          <span>Detection Rate: <strong id="provFps">-- FPS</strong></span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Sticky Footer for Quick Refresh -->
+  <footer class="student-footer">
+    <div class="footer-inner">
+      <div class="footer-info">
+        <span>MESSPULSE AI v2.5</span> • <span id="footerFreshness">Checking live connection...</span>
+      </div>
+      <button class="refresh-btn" id="btnManualRefresh" title="Refresh Live Data">
+        <span>🔄 Refresh</span>
+      </button>
+    </div>
+  </footer>
+
+  <script src="./js/student.js"></script>
+</body>
+</html>

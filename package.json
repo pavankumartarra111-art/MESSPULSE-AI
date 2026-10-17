@@ -1,7 +1,7 @@
-﻿{
-  "name": "smart-room-human-counter",
-  "version": "1.0.0",
-  "description": "Real-time Smart Room Human Counter using WebRTC Mobile Camera Stream and TensorFlow.js Person Detection",
+{
+  "name": "messpulse-ai",
+  "version": "2.5.0",
+  "description": "MESSPULSE AI - Real-Time Mess Crowd Intelligence, Queue Management and Smart Dining Optimization Platform",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
@@ -12,14 +12,16 @@
     "node": ">=18.0.0"
   },
   "keywords": [
+    "messpulse-ai",
+    "campus-dining",
+    "crowd-intelligence",
+    "queue-management",
     "webrtc",
-    "human-counter",
     "computer-vision",
     "tensorflow-js",
-    "coco-ssd",
-    "smart-room"
+    "coco-ssd"
   ],
-  "author": "Smart Room AI",
+  "author": "MESSPULSE AI Team",
   "license": "MIT",
   "dependencies": {
     "express": "^4.21.2",

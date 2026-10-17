@@ -24,9 +24,10 @@ class SignalingClient {
 
   connect() {
     this.isManualClose = false;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`;
+    const isGithub = window.location.hostname.endsWith('github.io');
+    const wsUrl = isGithub
+      ? 'wss://computer-vision-dyu6.onrender.com/ws'
+      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
 
     console.log(`[Signaling] Connecting to ${wsUrl} as role: ${this.role}...`);
     this.emit('connection-change', { status: 'connecting' });
