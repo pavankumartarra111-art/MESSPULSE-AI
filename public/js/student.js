@@ -47,9 +47,12 @@
   };
 
   let ws = null;
+  let sseSource = null;
   let pollTimer = null;
   let lastUpdateTime = Date.now();
   let simTick = 0;
+  let hasReceivedLiveFeed = false;
+  const RELAY_TOPIC = 'messpulse_live_relay_pavankumar';
 
   function loadLocalSettingsFallback() {
     try {
@@ -74,13 +77,36 @@
     } catch (e) {}
   }
 
+  // 1. Immediate State Extraction from QR Code Scan (#state=...)
+  function loadStateFromUrlHash() {
+    try {
+      const hash = window.location.hash;
+      if (hash && hash.includes('state=')) {
+        const b64 = hash.split('state=')[1].split('&')[0];
+        const json = decodeURIComponent(escape(atob(b64)));
+        const data = JSON.parse(json);
+        if (data && (data.occupancy !== undefined || data.capacity !== undefined)) {
+          hasReceivedLiveFeed = true;
+          renderState(data);
+          updateSyncState(true);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('[Student] Hash decode notice:', e);
+    }
+    return false;
+  }
+
+  // 2. Load from LocalStorage (same browser / device)
   function loadLiveStateFromStorage() {
     try {
       const saved = localStorage.getItem('messpulse_live_state');
       if (saved) {
         const data = JSON.parse(saved);
         const ageSec = Math.floor((Date.now() - new Date(data.lastUpdated || 0).getTime()) / 1000);
-        if (ageSec < 60) {
+        if (ageSec < 90) {
+          hasReceivedLiveFeed = true;
           renderState(data);
           updateSyncState(true);
           return true;
@@ -90,12 +116,54 @@
     return false;
   }
 
+  // 3. Cloud Real-Time Pub/Sub Relay (Cross-Device Phone Scanning)
+  function setupCloudRelay() {
+    // Immediate poll of latest message
+    fetch(`https://ntfy.sh/${RELAY_TOPIC}/json?poll=1`)
+      .then(res => res.json())
+      .then(item => {
+        if (item && item.message) {
+          try {
+            const data = JSON.parse(item.message);
+            if (data && (data.occupancy !== undefined || data.capacity !== undefined)) {
+              hasReceivedLiveFeed = true;
+              renderState(data);
+              updateSyncState(true);
+            }
+          } catch (e) {}
+        }
+      })
+      .catch(() => {});
+
+    // SSE connection for live updates stream
+    try {
+      if (sseSource) sseSource.close();
+      sseSource = new EventSource(`https://ntfy.sh/${RELAY_TOPIC}/sse`);
+      sseSource.onmessage = (event) => {
+        try {
+          const item = JSON.parse(event.data);
+          if (item && item.message) {
+            const data = JSON.parse(item.message);
+            if (data && (data.occupancy !== undefined || data.capacity !== undefined)) {
+              hasReceivedLiveFeed = true;
+              renderState(data);
+              updateSyncState(true);
+            }
+          }
+        } catch (e) {}
+      };
+      sseSource.onerror = () => {
+        // Automatic reconnection managed by browser
+      };
+    } catch (e) {}
+  }
+
   function generateAutonomousState() {
     simTick++;
     const now = new Date();
     const hour = now.getHours() + now.getMinutes() / 60;
     let period = 'Lunch Rush';
-    let baseOcc = 92;
+    let baseOcc = 95;
     let advice = 'Great time to go! Minimal waiting.';
     let suggestedTime = 'Immediate (Now)';
 
@@ -136,7 +204,6 @@
     const activeCounters = parseInt(settings.activeCounters, 10) || 3;
     const serviceSec = parseInt(settings.serviceSecondsPerPerson, 10) || 45;
 
-    // Natural fluctuation wave
     const wave = Math.sin(simTick * 0.2) * 6;
     const occ = Math.max(12, Math.min(cap - 5, Math.round(baseOcc + wave)));
     const qCount = Math.max(2, Math.round(occ * 0.22 + Math.cos(simTick * 0.3) * 2));
@@ -171,15 +238,72 @@
 
   function init() {
     loadLocalSettingsFallback();
-    const hasLiveStorage = loadLiveStateFromStorage();
-    if (!hasLiveStorage) {
+
+    // Priority 1: Check if opened via QR Code containing encoded state
+    const fromHash = loadStateFromUrlHash();
+
+    // Priority 2: Check LocalStorage if same browser
+    let fromStorage = false;
+    if (!fromHash) {
+      fromStorage = loadLiveStateFromStorage();
+    }
+
+    // Priority 3: Fallback initial render
+    if (!fromHash && !fromStorage) {
       renderState(generateAutonomousState());
     }
 
+    // Setup Cross-Window & Cross-Frame Listeners
+    setupCommunicationChannels();
+
+    // Setup Cloud Relay for multi-device scanning
+    setupCloudRelay();
+
+    // Setup WebSocket
     setupWebSocket();
+
+    // Initial Fetch & Freshness
     fetchCurrentState();
     startFreshnessTicker();
 
+    if (els.btnManualRefresh) {
+      els.btnManualRefresh.addEventListener('click', () => {
+        fetchCurrentState();
+        setupCloudRelay();
+        els.btnManualRefresh.style.transform = 'rotate(180deg)';
+        setTimeout(() => { els.btnManualRefresh.style.transform = 'none'; }, 300);
+      });
+    }
+
+    // Regular polling every 2.5 seconds
+    pollTimer = setInterval(fetchCurrentState, 2500);
+  }
+
+  function setupCommunicationChannels() {
+    // 1. BroadcastChannel (modern zero-latency same-origin sync)
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('messpulse_live_channel');
+        bc.onmessage = (event) => {
+          if (event.data && (event.data.occupancy !== undefined || event.data.capacity !== undefined)) {
+            hasReceivedLiveFeed = true;
+            renderState(event.data);
+            updateSyncState(true);
+          }
+        };
+      }
+    } catch (e) {}
+
+    // 2. window.postMessage (for phone iframe preview in admin dashboard)
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'occupancy-update' && event.data.payload) {
+        hasReceivedLiveFeed = true;
+        renderState(event.data.payload);
+        updateSyncState(true);
+      }
+    });
+
+    // 3. Storage event listener (cross-tab sync)
     window.addEventListener('storage', (e) => {
       if (e.key === 'messpulse_settings') {
         loadLocalSettingsFallback();
@@ -187,22 +311,17 @@
       if (e.key === 'messpulse_live_state' && e.newValue) {
         try {
           const data = JSON.parse(e.newValue);
+          hasReceivedLiveFeed = true;
           renderState(data);
           updateSyncState(true);
         } catch (err) {}
       }
     });
 
-    if (els.btnManualRefresh) {
-      els.btnManualRefresh.addEventListener('click', () => {
-        fetchCurrentState();
-        els.btnManualRefresh.style.transform = 'rotate(180deg)';
-        setTimeout(() => { els.btnManualRefresh.style.transform = 'none'; }, 300);
-      });
-    }
-
-    // Polling every 2.5 seconds to guarantee freshness
-    pollTimer = setInterval(fetchCurrentState, 2500);
+    // 4. HashChange event (if scanned URL updates)
+    window.addEventListener('hashchange', () => {
+      loadStateFromUrlHash();
+    });
   }
 
   const isGithub = window.location.hostname.endsWith('github.io');
@@ -226,7 +345,9 @@
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'occupancy-update' && data.payload) {
+            hasReceivedLiveFeed = true;
             renderState(data.payload);
+            updateSyncState(true);
           }
         } catch (e) {
           console.warn('[Student] WS message parse error:', e);
@@ -234,13 +355,10 @@
       };
 
       ws.onclose = () => {
-        updateSyncState(false);
         setTimeout(setupWebSocket, 6000);
       };
 
-      ws.onerror = () => {
-        updateSyncState(false);
-      };
+      ws.onerror = () => {};
     } catch (e) {
       console.warn('[Student] WS setup notice:', e);
     }
@@ -263,28 +381,28 @@
   }
 
   async function fetchCurrentState() {
-    // 1. Attempt backend fetch
+    // 1. Backend check
     try {
       const res = await fetch(`${API_BASE}/api/occupancy`);
       if (res.ok) {
         const data = await res.json();
         if (data && (data.occupancy !== undefined || data.capacity !== undefined)) {
+          hasReceivedLiveFeed = true;
           renderState(data);
           updateSyncState(true);
           return;
         }
       }
-    } catch (err) {
-      // Backend offline on static GitHub Pages
-    }
+    } catch (err) {}
 
-    // 2. Check localStorage from Admin Dashboard
+    // 2. LocalStorage check
     try {
       const local = localStorage.getItem('messpulse_live_state');
       if (local) {
         const data = JSON.parse(local);
         const ageSec = Math.floor((Date.now() - new Date(data.lastUpdated || 0).getTime()) / 1000);
-        if (ageSec < 45) {
+        if (ageSec < 90) {
+          hasReceivedLiveFeed = true;
           renderState(data);
           updateSyncState(true);
           return;
@@ -292,10 +410,29 @@
       }
     } catch (e) {}
 
-    // 3. Autonomous live simulation fallback
-    const autonomous = generateAutonomousState();
-    renderState(autonomous);
-    updateSyncState(true);
+    // 3. ntfy.sh Cloud Relay poll
+    try {
+      const res = await fetch(`https://ntfy.sh/${RELAY_TOPIC}/json?poll=1`);
+      if (res.ok) {
+        const item = await res.json();
+        if (item && item.message) {
+          const data = JSON.parse(item.message);
+          if (data && (data.occupancy !== undefined || data.capacity !== undefined)) {
+            hasReceivedLiveFeed = true;
+            renderState(data);
+            updateSyncState(true);
+            return;
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 4. Autonomous simulation fallback if no live dashboard feed is detected
+    if (!hasReceivedLiveFeed) {
+      const autonomous = generateAutonomousState();
+      renderState(autonomous);
+      updateSyncState(true);
+    }
   }
 
   function renderState(state) {
@@ -432,7 +569,7 @@
         els.provSource.textContent = 'Demonstration Mode';
         els.provSource.style.color = '#fbbf24';
       } else {
-        els.provSource.textContent = 'Standby / Live Monitor';
+        els.provSource.textContent = 'Live Station Connected';
         els.provSource.style.color = '#34d399';
       }
     }

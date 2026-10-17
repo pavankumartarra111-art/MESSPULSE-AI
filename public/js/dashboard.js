@@ -362,6 +362,11 @@
 
     // Start continuous inference and render loop
     requestAnimationFrame(detectionLoop);
+
+    // Initial calculation and broadcast so Student View has live data immediately
+    updateUIWithCounts();
+    scheduleServerPush();
+    updateStudentQrCode(true);
   }
 
   // ========================================================
@@ -402,14 +407,18 @@
   async function loadNetworkConfig(selectedIp = null) {
     if (IS_GITHUB_PAGES) {
       const studentDirectUrl = `${window.location.origin}${window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '')}/student.html`;
+      const mobileDirectUrl = `${window.location.origin}${window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '')}/mobile.html`;
       if (els.studentDirectUrlDisplay) {
         els.studentDirectUrlDisplay.textContent = studentDirectUrl;
       }
       if (els.studentQrImage) {
         els.studentQrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(studentDirectUrl)}`;
       }
+      if (els.qrImage) {
+        els.qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(mobileDirectUrl)}`;
+      }
       if (els.mobileUrlDisplay) {
-        els.mobileUrlDisplay.value = 'https://computer-vision-dyu6.onrender.com/mobile';
+        els.mobileUrlDisplay.value = mobileDirectUrl;
       }
     }
 
@@ -1837,6 +1846,54 @@
   // ========================================================
   // SERVER PUSH & MULTI-DEVICE SYNC
   // ========================================================
+
+  // ========================================================
+  // LIVE QR CODE GENERATOR (EMBEDS LIVE STATE IN SCAN URL)
+  // ========================================================
+  let lastQrUpdateTime = 0;
+  function updateStudentQrCode(force = false) {
+    const now = Date.now();
+    if (!force && now - lastQrUpdateTime < 3000) return;
+    lastQrUpdateTime = now;
+
+    const count = state.currentHumanCount;
+    const cap = state.capacity || 220;
+    const qCount = state.currentQueueCount;
+    const pct = Math.min(100, Math.round((count / cap) * 100));
+    const { lowMax, moderateMax } = state.thresholds;
+    const tier = count <= lowMax ? 'LOW' : count <= moderateMax ? 'MODERATE' : 'CRITICAL';
+    const waitMins = Math.max(1, Math.round((qCount * state.serviceSecondsPerPerson) / (state.activeCounters * 60)));
+
+    const compact = {
+      messName: state.messName || 'Central Campus Dining Hall',
+      capacity: cap,
+      occupancy: count,
+      queueCount: qCount,
+      occupancyPercent: pct,
+      crowdLevel: tier,
+      estimatedWaitMinutes: waitMins,
+      activeCounters: state.activeCounters,
+      announcement: state.announcement || '',
+      lastUpdated: new Date().toISOString()
+    };
+
+    try {
+      const json = JSON.stringify(compact);
+      const b64 = btoa(unescape(encodeURIComponent(json)));
+      const baseUrl = window.location.origin + window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '') + '/student.html';
+      const fullUrl = baseUrl + '#state=' + b64;
+
+      if (els.studentDirectUrlDisplay) {
+        els.studentDirectUrlDisplay.textContent = baseUrl;
+      }
+      if (els.studentQrImage) {
+        els.studentQrImage.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(fullUrl);
+      }
+    } catch (e) {
+      console.warn('QR generation notice:', e);
+    }
+  }
+
   function scheduleServerPush() {
     const now = Date.now();
     if (now - state.lastServerPush < 800) return; // Push at most once every 800ms
@@ -1896,7 +1953,40 @@
       localStorage.setItem('messpulse_live_state', JSON.stringify(payload));
     } catch (e) {}
 
-    // 2. Direct HTTP push
+    // 2. BroadcastChannel for instant same-browser cross-tab & iframe sync
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        if (!window._messpulseBroadcast) {
+          window._messpulseBroadcast = new BroadcastChannel('messpulse_live_channel');
+        }
+        window._messpulseBroadcast.postMessage(payload);
+      }
+    } catch (e) {}
+
+    // 3. PostMessage directly to the phone frame mockup iframe
+    try {
+      if (els.studentIframe && els.studentIframe.contentWindow) {
+        els.studentIframe.contentWindow.postMessage({
+          type: 'occupancy-update',
+          payload: payload
+        }, '*');
+      }
+    } catch (e) {}
+
+    // 4. Update the Student QR code so scans immediately load the newest state in the hash
+    updateStudentQrCode();
+
+    // 5. Cloud Pub/Sub Relay for real-time mobile scanning on any network
+    if (!window._lastCloudPush || (now - window._lastCloudPush >= 1200)) {
+      window._lastCloudPush = now;
+      fetch('https://ntfy.sh/messpulse_live_relay_pavankumar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    }
+
+    // 6. Direct HTTP push
     fetch(`${API_BASE}/api/occupancy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
